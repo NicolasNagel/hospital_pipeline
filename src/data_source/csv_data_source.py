@@ -1,19 +1,21 @@
 import os
+import io
 import pandas as pd
-import pandera.pandas as pa
 import logging
 
+from datetime import datetime
 from dotenv import load_dotenv
 from typing import List, Dict, Optional
 from pathlib import Path
 
 from src.contracts.schema import EncontersSchema, OrganizationsSchema, PatientsSchema, PayersSchema, ProceduresSchema
+from src.cloud.cloud_connection import AzureCloud
 
 logger = logging.getLogger(__name__)
 
 class DataSource:
-    """Classe responsável por fazer Coleta de Dados do tipo CSV."""
-    def __init__(self):
+    """Responsável por fazer Coleta de Dados do tipo CSV."""
+    def __init__(self, cloud_conn: Optional[AzureCloud] = None):
         load_dotenv()
 
         logging.basicConfig(
@@ -21,6 +23,7 @@ class DataSource:
             format='%(asctime)s | %(name)s | %(levelname)s | %(message)s',
         )
 
+        self.cloud_conn = cloud_conn or AzureCloud()
         self.file_path = 'src/data'
         self.validation_schema = {
             'encounters': EncontersSchema,
@@ -103,10 +106,47 @@ class DataSource:
             logger.error(f'Erro ao transformar dados: \n{str(e)}')
             return {}
     
-    def load_data(self):
-        pass
+    def load_data(self, df_dict: Dict[str, pd.DataFrame]) -> None:
+        """
+        Transforma os arquiuvos em parquet e depois salva na Azure.
+        
+        Args:
+            df_dict (Dict[str, DataFrame]): Dicionário com 'nome do arquivo': pd.DataFrame.
+        
+        Returns:
+            None: Mensagem de sucesso, se erro, mensgagem de erro.
+        """
+        logger.info('Preparando Dados para serem salvos...')
 
-if __name__ == '__main__':
-    data_source = DataSource()
-    files = data_source.extract_data()
-    df_dict = data_source.transform_data(files)
+        if not df_dict or df_dict is None:
+            logger.warning('Salvamento cancelado. Nenhum dado foi passado.')
+            raise
+
+        try:
+            for name, df in df_dict.items():
+                download_buffer = io.BytesIO()
+                df.to_parquet(download_buffer, engine='pyarrow', index=False)
+                parquet_data = download_buffer.getvalue()
+
+                file_name = self._rename_file()
+                blob_name = f'{name}/{name}_{file_name}'
+
+                self.cloud_conn.upload_data(blob_name=blob_name, data=parquet_data)
+                logger.info(f'{blob_name} arquivo salvo com sucesso.')
+
+            logger.info(f'{len(df_dict)} arquivos salvos com sucesso.')
+
+        except Exception as e:
+            logger.error(f'Erro ao tentar salvar os arquivos na Azure: {str(e)}')
+            raise
+
+    def _rename_file(self) -> str:
+        """
+        Renomeia o nome do arquivo para ter o timezone.
+
+        Returns:
+            str: Nome do arquivo.
+        """
+        date_time = datetime.now().isoformat()
+        match = date_time.split('.')[0]
+        return f'{match}.parquet'
