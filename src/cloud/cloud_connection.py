@@ -27,7 +27,7 @@ class AzureCloud:
         self.tenant_id = os.getenv('AZURE_TENANT_ID')
         self.client_secret = os.getenv('AZURE_CLIENT_SECRET')
         self.account_url = os.getenv('AZURE_ACCOUNT_URL')
-        self.container_name = container_name or 'hospitaldata'
+        self.container_name = container_name or os.getenv('AZURE_CONTAINER_NAME')
 
         try:
             self.credentials = ClientSecretCredential(

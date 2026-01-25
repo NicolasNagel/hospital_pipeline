@@ -9,13 +9,13 @@ class EncountersModel(Base):
 
     __tablename__ = 'raw_encounters'
 
-    id = Column(String, primary_key=True, unique=True, index=True, nullable=False)
+    id = Column(String, primary_key=True, unique=True, nullable=False)
     start = Column(DateTime, nullable=False)
     stop = Column(DateTime, nullable=False)
     patient = Column(String, nullable=False)
     organization = Column(String, nullable=False)
     payer = Column(String, nullable=False)
-    encountersclass = Column(String, nullable=False)
+    encountersclass = Column(String, nullable=True)
     code = Column(String, nullable=False)
     description = Column(String, nullable=False)
     base_encounter_cost = Column(Float, nullable=False)
@@ -33,7 +33,7 @@ class OrganizationsModel(Base):
 
     __tablename__ = 'raw_organizations'
 
-    id = Column(String, primary_key=True, index=True, nullable=False, unique=True)
+    id = Column(String, primary_key=True, nullable=False, unique=True)
     name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     city = Column(String, nullable=False)
@@ -51,7 +51,7 @@ class PatientsModel(Base):
 
     __tablename__ = 'raw_patients'
 
-    id = Column(String, primary_key=True, unique=True, index=True, nullable=False)
+    id = Column(String, primary_key=True, unique=True, nullable=False)
     birthdate = Column(DateTime, nullable=False)
     deathdate = Column(DateTime, nullable=True)
     prefix = Column(String, nullable=True)
@@ -81,7 +81,7 @@ class PayersModel(Base):
 
     __tablename__ = 'raw_payers'
 
-    id = Column(String, primary_key=True, unique=True, index=True, nullable=False)
+    id = Column(String, primary_key=True, unique=True, nullable=False)
     name = Column(String, nullable=False)
     address = Column(String, nullable=True)
     city = Column(String, nullable=True)
@@ -98,7 +98,7 @@ class ProceduresModel(Base):
 
     __tablename__ = 'raw_procedures'
 
-    id = Column(Integer, nullable=False, primary_key=True, index=True)
+    id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
     start = Column(DateTime, nullable=False)
     stop = Column(DateTime, nullable=False)
     patient = Column(String, nullable=False) 

@@ -52,11 +52,11 @@ class DataBase:
             raise
 
         self.ORM_MAPPING = {
-            'encounters': EncountersModel,
-            'organizations': OrganizationsModel,
-            'patients': PatientsModel,
-            'payers': PayersModel,
-            'procedures': ProceduresModel
+            'encounters': 'raw_encounters',
+            'organizations': 'raw_organizations',
+            'patients': 'raw_patients',
+            'payers': 'raw_payers',
+            'procedures': 'raw_procedures'
         }
 
     def create_tables(self) -> None:
@@ -83,7 +83,7 @@ class DataBase:
             logger.error(f'Erro ao deletar as tabelas: {str(e)}')
             raise
 
-    def insert_data(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 1_000) -> None:
+    def insert_data(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 5_000) -> None:
         """
         Insere os registros no Banco de Dados.
         
@@ -128,7 +128,7 @@ class DataBase:
         finally:
             session.close()
 
-    def update_data(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 1_000) -> None:
+    def update_data(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 5_000) -> None:
         """
         Atualiza os registros no Banco de Dados.
         
@@ -173,7 +173,7 @@ class DataBase:
         finally:
             session.close()
 
-    def upsert_data(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 1_000) -> None:
+    def upsert_data(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 5_000) -> None:
         """
         Atualiza ou faz o Insert dos registros no Banco de Dados.
         
@@ -235,7 +235,7 @@ class DataBase:
         finally:
             session.close()
 
-    def incremental_load(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 1_000) -> None:
+    def incremental_load(self, df_dict: Dict[str, pd.DataFrame], batch_size: Optional[int] = 5_000) -> None:
         """
         Insere apenas registros novos no Banco de Dados.
         
@@ -286,3 +286,22 @@ class DataBase:
 
         finally:
             session.close()
+
+    def insert_data_with_pandas(self, df_dict: Dict[str, pd.DataFrame]) -> None:
+        logger.info('Inserindo Dados...')
+
+        if not df_dict or df_dict is None:
+            logger.warning('Inserção cancelada. Nenhum dado foi passado.')
+            raise
+
+        try:
+            for name, df in df_dict.items():
+                table_name = self.ORM_MAPPING.get(name)
+                df.to_sql(table_name, self.engine, if_exists='replace')
+                logger.info(f'{len(df):.2f} linhas inseridas em {table_name}')
+
+            logger.info(f'{len(df_dict)} Tabelas modificadas.')
+
+        except Exception as e:
+            logger.error(f'Erro ao inserir dados: {str(e)}')
+            raise
