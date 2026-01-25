@@ -13,15 +13,15 @@ from src.cloud.cloud_connection import AzureCloud
 
 logger = logging.getLogger(__name__)
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s',
+)
+
 class DataSource:
     """Responsável por fazer Coleta de Dados do tipo CSV."""
     def __init__(self, cloud_conn: Optional[AzureCloud] = None):
         load_dotenv()
-
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s | %(name)s | %(levelname)s | %(message)s',
-        )
 
         self.cloud_conn = cloud_conn or AzureCloud()
         self.file_path = 'src/data'
@@ -34,7 +34,23 @@ class DataSource:
         }
 
     def start(self):
-        pass
+        """Roda a Pipeline de Dados."""
+        logger.info('Iniciando Pipeline de Dados...')
+
+        start_time = datetime.now()
+        try:
+            data = self.extract_data()
+            data = self.transform_data(data)
+            data = self.load_data(data)
+
+            end_time = datetime.now()
+            pipeline_time = (end_time - start_time).total_seconds()
+
+            logger.info(f'Pipeline Concluída com Sucesso em: {pipeline_time:.2f}s')
+
+        except Exception as e:
+            logger.error(f'Erro ao rodar a pipeline: {str(e)}')
+            raise
 
     def extract_data(self) -> List[Path]:
         """
